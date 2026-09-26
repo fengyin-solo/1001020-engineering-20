@@ -50,9 +50,12 @@ def create_entry(payload: EntryPayload) -> ActionResult:
 
 @router.post("/{entry_id}/actions", response_model=ActionResult)
 def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
-    """对单条应急事件执行启动响应、调集力量、结束处置；不允许的动作会被拦下并说明原因。"""
+    """对单条应急事件执行启动响应、调集力量、结束处置；不允许的动作会被拦下并说明原因。
+
+    调集力量、结束处置需要在 values 里随动作提交「出动班组」「处置结果」。
+    """
     action = str(payload.values.get("action") or "").strip()
-    entry, message = service.run_action(entry_id, action)
+    entry, message = service.run_action(entry_id, action, payload.values)
     if entry is None:
         return ActionResult(ok=False, message=message)
     return ActionResult(ok=True, message=message, entry=entry)
