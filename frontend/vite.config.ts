@@ -26,6 +26,20 @@ export default defineConfig({
       },
     },
   },
+  // 构建产物用 vite preview 起服务时走同一份代理配置，
+  // 保证 make up 拉起的预览服务和 dev server 行为一致
+  preview: {
+    host: '127.0.0.1',
+    port: 5173,
+    open: false,
+    strictPort: true,
+    proxy: {
+      '/api': {
+        target: proxyTarget,
+        changeOrigin: true,
+      },
+    },
+  },
   build: {
     outDir: 'dist',
     sourcemap: false,

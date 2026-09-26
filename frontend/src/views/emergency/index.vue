@@ -90,19 +90,56 @@ function exportRows() {
   window.open(`${ENDPOINT}/export`, '_blank')
 }
 
-function openCreate() {
-  errorMessage.value = '应急事件登记入口尚未接入审批流'
+async function openCreate() {
+  errorMessage.value = ''
+  const values: Record<string, string> = {}
+  for (const field of ['事件编号', '事件类型', '发生地点', '响应等级']) {
+    const input = window.prompt(`登记应急事件：请输入${field}`)
+    if (input === null) {
+      return
+    }
+    values[field] = input.trim()
+  }
+  try {
+    const response = await request(ENDPOINT, {
+      method: 'POST',
+      body: JSON.stringify({ values }),
+    })
+    const payload = await response.json()
+    if (!response.ok || !payload.ok) {
+      throw new Error(payload.message ?? '应急事件登记失败')
+    }
+    await reload()
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '应急事件登记失败'
+  }
 }
 
 async function runAction(action: string, row: Row) {
   errorMessage.value = ''
+  const values: Record<string, string> = { action }
+  if (action === '调集力量') {
+    const team = window.prompt('调集力量：请输入出动班组', String(row['出动班组'] ?? ''))
+    if (team === null) {
+      return
+    }
+    values['出动班组'] = team.trim()
+  }
+  if (action === '结束处置') {
+    const result = window.prompt('结束处置：请填写处置结果', String(row['处置结果'] ?? ''))
+    if (result === null) {
+      return
+    }
+    values['处置结果'] = result.trim()
+  }
   try {
     const response = await request(`${ENDPOINT}/${row.id}/actions`, {
       method: 'POST',
-      body: JSON.stringify({ action }),
+      body: JSON.stringify({ values }),
     })
-    if (!response.ok) {
-      throw new Error('应急抢险动作未生效，请稍后重试')
+    const payload = await response.json()
+    if (!response.ok || !payload.ok) {
+      throw new Error(payload.message ?? '应急抢险动作未生效，请稍后重试')
     }
     await reload()
   } catch (error) {
